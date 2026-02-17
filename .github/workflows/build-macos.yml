@@ -49,14 +49,16 @@ jobs:
         run: npm ci
         working-directory: tauri-app
 
+      # tauri-action: 빌드 후 tagName으로 Git 태그를 생성하고, 해당 태그로 GitHub Release 생성
+      # __VERSION__ 은 tauri.conf.json / package.json 버전으로 치환됨 (예: v0.1.0)
       - name: Build Tauri app (macOS)
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: tauri-app
-          tagName: app-v__VERSION__
+          tagName: v__VERSION__
           releaseName: "tauri-app v__VERSION__"
           releaseBody: "macOS 네이티브 빌드. See the assets to download."
-          releaseDraft: true
+          releaseDraft: false
           args: ${{ matrix.args }}

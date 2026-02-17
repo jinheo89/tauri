@@ -1,0 +1,62 @@
+# React + Tauri 앱을 네이티브 macOS(.app, .dmg)로 빌드합니다.
+# macOS 실기기 또는 GitHub Actions에서 실행 가능합니다.
+# 트리거: release 브랜치 push 또는 수동 실행(workflow_dispatch)
+name: Build macOS
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - release
+
+jobs:
+  build-macos:
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Apple Silicon (M1 이상)
+          - platform: macos-latest
+            args: --target aarch64-apple-darwin
+          # Intel Mac
+          - platform: macos-latest
+            args: --target x86_64-apple-darwin
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+          cache: "npm"
+          cache-dependency-path: tauri-app/package-lock.json
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: tauri-app/src-tauri
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: tauri-app
+
+      - name: Build Tauri app (macOS)
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: tauri-app
+          tagName: app-v__VERSION__
+          releaseName: "tauri-app v__VERSION__"
+          releaseBody: "macOS 네이티브 빌드. See the assets to download."
+          releaseDraft: true
+          args: ${{ matrix.args }}
